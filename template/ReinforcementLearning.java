@@ -27,12 +27,12 @@ public class ReinforcementLearning  {
 	private int costPerKM;
 
 
-	private static double DiscountFactor= 0.9;
+	private static double DiscountFactor = 0.7;
 
 	public ReinforcementLearning(ArrayList<City> cityL, TaskDistribution td, int costPerKM){
 
-		taskDist= td;
-		cityList= cityL;
+		taskDist = td;
+		cityList = cityL;
 		this.costPerKM= costPerKM;
 
 		for ( int i=0; i< cityList.size(); i++ ){
@@ -57,6 +57,7 @@ public class ReinforcementLearning  {
 		for(int i=0; i< cityList.size(); i++){
 			actions.add(new ArrayList<Object>());
 			actions.get(i).add("p&d");
+			// Add neighbours in case of no packet at i
 			List<City> neighbours= cityList.get(i).neighbors();
 			//System.out.println(cityList.get(i)+" "+neighbours);
 			for(int j=0; j< neighbours.size(); j++){
@@ -65,11 +66,11 @@ public class ReinforcementLearning  {
 			//System.out.println("city: "+ cityList.get(i) +" actions: "+ actions.get(i));
 		}
 	}
-	public void learning(){
-		ArrayList<ArrayList<Double>> Qsa= new ArrayList<ArrayList<Double>>();
-		ArrayList<Double> Vs= new ArrayList<Double>(Collections.nCopies(stateSpace.size(), 0.0));
-		ArrayList<Double> previousVs= new ArrayList<Double>(Collections.nCopies(stateSpace.size(), 0.0));
-		ArrayList<Object> BestS= new ArrayList<Object>(Collections.nCopies(stateSpace.size(), 0.0));
+	public ArrayList<Object> learning(){
+		ArrayList<ArrayList<Double>> Qsa = new ArrayList<ArrayList<Double>>();
+		ArrayList<Double> Vs = new ArrayList<Double>(Collections.nCopies(stateSpace.size(), 0.0));
+		ArrayList<Double> previousVs = new ArrayList<Double>(Collections.nCopies(stateSpace.size(), 0.0));
+		ArrayList<Object> BestS = new ArrayList<Object>(Collections.nCopies(stateSpace.size(), 0.0));
 
 		do{
 			for (int i=0; i<Vs.size(); i++){
@@ -79,7 +80,7 @@ public class ReinforcementLearning  {
 				Qsa.add(new ArrayList<Double>());
 				for(int j=0; j< actions.get(i/cityList.size()).size(); j++){
 					//System.out.println("state: "+ stateSpace.get(i)+ " actions: "+ actions.get(i/cityList.size()));
-					if(stateSpace.get(i).get(1)!=null && actions.get(i/cityList.size()).get(j).equals("p&d")){
+					if(stateSpace.get(i).get(1) != null && actions.get(i/cityList.size()).get(j).equals("p&d")){
 						Qsa.get(i).add(computeCurrentQsa(stateSpace.get(i).get(0), stateSpace.get(i).get(1), Vs, actions.get(i/cityList.size()).get(j))) ;
 					}
 					else if(actions.get(i/cityList.size()).get(j)!= "p&d" ){
@@ -100,11 +101,15 @@ public class ReinforcementLearning  {
 			//				System.out.println("previousVs--->"+ previousVs);
 			//			}
 
-		}while(!checkConvergence(Vs, previousVs));
+		} while(!checkConvergence(Vs, previousVs));
+		
 		for(int i=0; i< BestS.size(); i++){
 			System.out.println(stateSpace.get(i)+ " best action is: "+ BestS.get(i));
 		}
+		
+		return BestS;
 	}
+	
 	public double computeCurrentQsa(City currentCity, City destinationCity, ArrayList<Double> Vs, Object action){
 		double currentQsa= 0.0;
 		double futureHorizon= 0.0;
@@ -119,13 +124,15 @@ public class ReinforcementLearning  {
 
 		for (int i=0; i< stateSpace.size(); i++){
 			//take into account also the case when there is no package (i.e the second field is null) bc probability(city1 , null) returns the probability there is no task in city city1.
-			if( stateSpace.get(i).get(0)== destinationCity){
+			if( stateSpace.get(i).get(0) == destinationCity){
 				futureHorizon += taskDist.probability(destinationCity, stateSpace.get(i).get(1)) * Vs.get(i); 
 			}
 		}
 		currentQsa += DiscountFactor * futureHorizon;
+		
 		return currentQsa;
 	}
+	
 	public boolean checkConvergence(ArrayList<Double> Vs, ArrayList<Double> PreviousVs){
 		//return true if converged (just compares the two arrayList, if are equal converged =true)
 		boolean converged= false;
@@ -134,5 +141,9 @@ public class ReinforcementLearning  {
 		}
 		return converged;
 
+	}
+	
+	public ArrayList<ArrayList<City>>getStateSpace() {
+		return stateSpace;
 	}
 }
