@@ -15,6 +15,8 @@ package template;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import logist.simulation.Vehicle;
 import logist.task.TaskDistribution;
 import logist.topology.Topology.City;
 
@@ -24,16 +26,12 @@ public class ReinforcementLearning  {
 	private ArrayList<ArrayList<City>> stateSpace= new ArrayList<ArrayList<City>>();
 	private ArrayList<ArrayList<Object>> actions= new ArrayList<ArrayList<Object>>();
 	private TaskDistribution taskDist;
-	private int costPerKM;
 
+	private static double DiscountFactor = 0.99;
 
-	private static double DiscountFactor = 0.95;
-
-	public ReinforcementLearning(ArrayList<City> cityL, TaskDistribution td, int costPerKM){
-
+	public ReinforcementLearning(ArrayList<City> cityL, TaskDistribution td){
 		taskDist = td;
 		cityList = cityL;
-		this.costPerKM= costPerKM;
 
 		// Create the state space
 		for ( int i=0; i< cityList.size(); i++ ){
@@ -53,7 +51,6 @@ public class ReinforcementLearning  {
 
 		}
 		System.out.println(stateSpace.size());
-
 		// Create actions for city
 		for(int i=0; i< cityList.size(); i++){
 			// Add Pickup & Deliver action
@@ -67,8 +64,7 @@ public class ReinforcementLearning  {
 		}
 	}
 	
-	public ArrayList<Object> learning(){
-		
+	public ArrayList<Object> learning(Vehicle v){	
 		// Multiple Q(s), depending on the action -> Best one is stored in V(s) at the end of a loop
 		ArrayList<ArrayList<Double>> Qsa = new ArrayList<ArrayList<Double>>();
 		ArrayList<Double> Vs = new ArrayList<Double>(Collections.nCopies(stateSpace.size(), 0.0));
@@ -78,6 +74,7 @@ public class ReinforcementLearning  {
 		
 		// Best action for state is saved in Best(S)
 		ArrayList<Object> BestS = new ArrayList<Object>(Collections.nCopies(stateSpace.size(), 0.0));
+		int x = 0;
 		do{
 			for (int i=0; i<Vs.size(); i++) {
 				// Set current values from V(s) to previous V(s)
@@ -92,11 +89,11 @@ public class ReinforcementLearning  {
 					// Only states with package and actions with actions pickup & deliver
 					if(stateSpace.get(i).get(1) != null && actions.get(i/cityList.size()).get(j).equals("p&d")) {
 						// Calculate QSA with action 'p&d'
-						Qsa.get(i).add(computeCurrentQsa(stateSpace.get(i).get(0), stateSpace.get(i).get(1), Vs, actions.get(i/cityList.size()).get(j))) ;
+						Qsa.get(i).add(computeCurrentQsa(stateSpace.get(i).get(0), stateSpace.get(i).get(1), Vs, actions.get(i/cityList.size()).get(j), v)) ;
 					}
 					else if(actions.get(i/cityList.size()).get(j)!= "p&d" ){
 						// Calculate QSA with action move
-						Qsa.get(i).add(computeCurrentQsa(stateSpace.get(i).get(0), (City)actions.get(i/cityList.size()).get(j), Vs, actions.get(i/cityList.size()).get(j))) ;
+						Qsa.get(i).add(computeCurrentQsa(stateSpace.get(i).get(0), (City)actions.get(i/cityList.size()).get(j), Vs, actions.get(i/cityList.size()).get(j), v)) ;
 					}
 					else{
 						//it can not happen that i pick up a task if there is no task (setting to -inf).
@@ -108,29 +105,31 @@ public class ReinforcementLearning  {
 				BestS.set(i, actions.get(i/cityList.size()).get(Qsa.get(i).indexOf(Collections.max(Qsa.get(i)))));
 			}
 			Qsa.clear();
+			x = x+1;
 		} while(!checkConvergence(Vs, previousVs));
+		
+		System.out.println("Number of iterations: "+x);
 		
 		System.out.println(Vs);
 		System.out.println(previousVs);
 		
 		for(int i=0; i< BestS.size(); i++){
 			System.out.println(stateSpace.get(i)+ " best action is: "+ BestS.get(i));
-		}
-		
+		}	
 		return BestS;
 	}
 	
-	public double computeCurrentQsa(City currentCity, City destinationCity, ArrayList<Double> Vs, Object action){
+	public double computeCurrentQsa(City currentCity, City destinationCity, ArrayList<Double> Vs, Object action, Vehicle vehicle){
 		double currentQsa = 0.0;
 		double futureHorizon = 0.0;
 
 		if(action.equals("p&d")){
 			// Expected reward - cost per kilometer 
-			currentQsa = taskDist.reward(currentCity, destinationCity) - (currentCity.distanceTo(destinationCity) * costPerKM);
+			currentQsa = taskDist.reward(currentCity, destinationCity) - (currentCity.distanceTo(destinationCity) * vehicle.costPerKm());
 		}
 		else{
 			currentCity.distanceTo(destinationCity);
-			currentQsa= - currentCity.distanceTo(destinationCity) * costPerKM;
+			currentQsa= - currentCity.distanceTo(destinationCity) * vehicle.costPerKm();
 		}
 
 		for (int i=0; i< stateSpace.size(); i++){
