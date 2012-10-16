@@ -160,7 +160,6 @@ public class ReinforcementLearning  {
 		}
 		
 		return converged;
-
 	}
 	
 	public ArrayList<ArrayList<City>>getStateSpace() {
