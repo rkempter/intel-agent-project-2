@@ -27,7 +27,6 @@ public class ReinforcementLearning  {
 	private ArrayList<ArrayList<Object>> actions= new ArrayList<ArrayList<Object>>();
 	private TaskDistribution taskDist;
 
-
 	private static double DiscountFactor = 0.99;
 
 	public ReinforcementLearning(ArrayList<City> cityL, TaskDistribution td){
@@ -75,6 +74,7 @@ public class ReinforcementLearning  {
 		
 		// Best action for state is saved in Best(S)
 		ArrayList<Object> BestS = new ArrayList<Object>(Collections.nCopies(stateSpace.size(), 0.0));
+		int x = 0;
 		do{
 			for (int i=0; i<Vs.size(); i++) {
 				// Set current values from V(s) to previous V(s)
@@ -105,7 +105,13 @@ public class ReinforcementLearning  {
 				BestS.set(i, actions.get(i/cityList.size()).get(Qsa.get(i).indexOf(Collections.max(Qsa.get(i)))));
 			}
 			Qsa.clear();
+			x = x+1;
 		} while(!checkConvergence(Vs, previousVs));
+		
+		System.out.println("Number of iterations: "+x);
+		
+		System.out.println(Vs);
+		System.out.println(previousVs);
 		
 		for(int i=0; i< BestS.size(); i++){
 			System.out.println(stateSpace.get(i)+ " best action is: "+ BestS.get(i));
@@ -127,7 +133,7 @@ public class ReinforcementLearning  {
 		}
 
 		for (int i=0; i< stateSpace.size(); i++){
-			//take into account also the case when there is no package (i.e the second field is null) bc probability(city1 , null) returns the probability there is no task in city city1.
+			// From state j to all other states
 			if( stateSpace.get(i).get(0) == destinationCity){
 				futureHorizon += taskDist.probability(destinationCity, stateSpace.get(i).get(1)) * Vs.get(i); 
 			}
@@ -137,15 +143,23 @@ public class ReinforcementLearning  {
 		return currentQsa;
 	}
 	
-	public boolean checkConvergence(ArrayList<Double> Vs, ArrayList<Double> PreviousVs){
+	public boolean checkConvergence(ArrayList<Double> Vs, ArrayList<Double> previousVs){
 		//return true if converged (just compares the two arrayList, if are equal converged =true)
 		boolean converged = false;
 		
-		if(Vs.equals(PreviousVs)){
+		double eps = Math.pow(2, -53);
+		double maxValue = 0;
+		for(int i = 0; i < Vs.size(); i++) {
+			double currentVal = Math.abs(Vs.get(i)-previousVs.get(i));
+			if(currentVal > maxValue) {
+				maxValue = currentVal;
+			}
+		}
+		if(maxValue <= (2*eps*DiscountFactor)/(1-DiscountFactor)) {
 			converged = true;
 		}
+		
 		return converged;
-
 	}
 	
 	public ArrayList<ArrayList<City>>getStateSpace() {
