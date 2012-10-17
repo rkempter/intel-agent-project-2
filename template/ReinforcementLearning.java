@@ -36,7 +36,6 @@ public class ReinforcementLearning  {
 					stateSpace.get((i*cityList.size())+j).add(null);
 				}
 			}
-
 		}
 		// Create actions for cities
 		for(int i=0; i< cityList.size(); i++){

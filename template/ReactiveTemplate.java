@@ -61,7 +61,7 @@ public class ReactiveTemplate implements ReactiveBehavior {
 		Object bestAction = BestS.get(vehicle.id()).get(currentStateIndex);
 
 		// Check state and get best action
-
+		System.out.println("********************* "+ vehicle.name() +" *********************");
 		if(bestAction == "p&d") {
 			System.out.println( vehicle.name() +" picks up a new task in "+ state.get(0)+" to be delivered to " + state.get(1));
 			action = new Pickup(availableTask);
